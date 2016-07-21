@@ -4,6 +4,12 @@ SET(CMAKE_CXX_COMPILER nmcc)
 SET(CMAKE_ASM_COMPILER asm)
 
 macro(nmc_target CORE)
+    SET(NMC_CURRENT_CORE ${CORE})
+
+    if (NOT NMC_NO_INSTALL_PREFIX_OVERRIDE)
+        SET(CMAKE_INSTALL_PREFIX "/${CORE}/")
+    endif()
+
     if (${CORE} MATCHES "soc")
         if(NOT DEFINED CMAKE_C_FLAGS_INIT)
           set(CMAKE_C_FLAGS_INIT "-DNEURO -O2 -soc -Xq")
