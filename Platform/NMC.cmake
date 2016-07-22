@@ -20,15 +20,41 @@ set(CMAKE_DL_LIBS "")
 set(CMAKE_C_OUTPUT_EXTENSION ".o")
 set(CMAKE_CXX_OUTPUT_EXTENSION ".o")
 
+set_property(GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS FALSE)
+
+function(nmc_try_find_dir_by_tool THETOOL THEVAR)
+
+  if (${THEVAR})
+    return()
+  endif()
+
+  if (NOT ${THETOOL})
+    return()
+  endif()
+
+  if (${THETOOL})
+    find_program(EXECUTABLE ${${THETOOL}})
+  else()
+    return()
+  endif()
+
+  if (EXECUTABLE)
+    get_filename_component(${THEVAR} "${EXECUTABLE}" DIRECTORY CACHE)
+  endif()
+endfunction()
+
+
 if (NOT NMC_LOCATION)
   message(STATUS "Detecting NMC toolchain location")
-  find_program(NMCC_EXECUTABLE nmcc)
-  get_filename_component(NMC_LOCATION "${NMCC_EXECUTABLE}" DIRECTORY CACHE)
-  message(STATUS "Found toolchain in: ${NMC_LOCATION}")
+  nmc_try_find_dir_by_tool(CMAKE_C_COMPILER NMC_LOCATION)
+  nmc_try_find_dir_by_tool(CMAKE_ASM_COMPILER NMC_LOCATION)
+  nmc_try_find_dir_by_tool(CMAKE_CXX_COMPILER NMC_LOCATION)
+  if (NMC_LOCATION)
+    message(STATUS "Found toolchain in: ${NMC_LOCATION}")
+  endif()
 endif()
 
 if (NOT NMC_LOCATION)
-  message(${CMAKE_ASM_COMPILER} | ${NMC_LOCATION})
   message(FATAL_ERROR "Failed locate NMC toolchain dir")
 endif()
 
@@ -42,16 +68,21 @@ if (NOT NMC_LIBC)
   SET(NMC_LIBC "libc05.lib")
 endif()
 
-set(CMAKE_C_COMPILE_OBJECT  "<CMAKE_C_COMPILER> -Tc99 <DEFINES> <FLAGS> -Sc <SOURCE> -o<OBJECT>")
-set(CMAKE_CXX_COMPILE_OBJECT  "<CMAKE_CXX_COMPILER> <DEFINES> <FLAGS> -Sc <SOURCE> -o<OBJECT>")
-set(CMAKE_ASM_COMPILE_OBJECT  "<CMAKE_ASM_COMPILER> <DEFINES> <FLAGS> <SOURCE> -o<OBJECT>")
+if(${CMAKE_HOST_SYSTEM} MATCHES "Windows")
+  set(INCDIR_HELPER "<INCLUDES>")
+else()
+  set(INCDIR_HELPER "")
+endif()
+
+set(CMAKE_C_COMPILE_OBJECT  "<CMAKE_C_COMPILER> -Tc99 <DEFINES> <FLAGS> ${INCDIR_HELPER} -Sc <SOURCE> -o<OBJECT>")
+set(CMAKE_CXX_COMPILE_OBJECT  "<CMAKE_CXX_COMPILER> <DEFINES> <FLAGS> ${INCDIR_HELPER} -Sc <SOURCE> -o<OBJECT>")
+set(CMAKE_ASM_COMPILE_OBJECT  "<CMAKE_ASM_COMPILER> <DEFINES> <FLAGS> ${INCDIR_HELPER} <SOURCE> -o<OBJECT>")
 
 set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_LINKER> <OBJECTS> -o<TARGET> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> -l\"$ENV{NEURO}/lib\" <LINK_LIBRARIES> ${NMC_LIBC}")
 set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <OBJECTS> -o<TARGET> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> -l\"$ENV{NEURO}/lib\" <LINK_LIBRARIES> ${NMC_LIBC} ${NMC_LIBCPP}")
 set(CMAKE_ASM_LINK_EXECUTABLE "<CMAKE_LINKER> <OBJECTS> -o<TARGET> <CMAKE_ASM_LINK_FLAGS> <LINK_FLAGS> -l\"$ENV{NEURO}/lib\" <LINK_LIBRARIES>")
 
 #set(CMAKE_C_LINK_EXECUTABLE "cat")
-# needs NMC 2.7.0 + sddclib from cvs
 set(CMAKE_C_CREATE_STATIC_LIBRARY
       "\"${CMAKE_COMMAND}\" -E remove <TARGET>"
       "<CMAKE_AR> -a <TARGET> <LINK_FLAGS> <OBJECTS> ")
