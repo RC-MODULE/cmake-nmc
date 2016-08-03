@@ -13,7 +13,6 @@ if (CMAKE_TOOLCHAIN_FILE)
     return()
 endif()
 
-SET(CROSS_COMPILING yes)
 macro(SET_DEFAULT_VALUE _VAR _VALUE)
     if (NOT ${_VAR})
         SET(${_VAR} "${_VALUE}")
@@ -31,12 +30,15 @@ SET_DEFAULT_VALUE(CMAKE_CXX_COMPILER   ${CROSS_COMPILE}-g++${CMAKE_EXECUTABLE_SU
 find_program(CROSS_TOOLCHAIN_PATH NAMES ${CMAKE_C_COMPILER})
 get_filename_component(CROSS_TOOLCHAIN_PATH "${CROSS_TOOLCHAIN_PATH}" PATH)
 
-if (EXISTS ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/sysroot)
-    SET(CMAKE_FIND_ROOT_PATH  ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/sysroot)
-elseif(EXISTS ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/libc)
-    SET(CMAKE_FIND_ROOT_PATH  ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/libc)
-else()
-    message(WARNING "Couldn't auto-detect sysroot dir")
+#CMAKE_FIND_ROOT_PATH may have been defined by the top level
+if (NOT CMAKE_FIND_ROOT_PATH)
+    if (EXISTS ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/sysroot)
+        SET(CMAKE_FIND_ROOT_PATH  ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/sysroot)
+    elseif(EXISTS ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/libc)
+        SET(CMAKE_FIND_ROOT_PATH  ${CROSS_TOOLCHAIN_PATH}/../${CROSS_COMPILE}/libc)
+    else()
+        message(WARNING "Couldn't auto-detect sysroot dir. Shit may happen")
+    endif()
 endif()
 
 # search for programs in the build host directories
@@ -46,12 +48,9 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 message(STATUS "Using cross-sysroot ${CMAKE_FIND_ROOT_PATH}")
 
-#Since autodetection will not work as expected when cross-compiling
-#Let's fill in details
-SET_DEFAULT_VALUE(LUA_CPATH "lib/lua/5.2/")
-SET_DEFAULT_VALUE(LUA_LPATH "share/lua/5.2/")
-
-#Rig our pkg-config helper
-include(PkgConfigSetup)
-PkgConfigSetupSysroot()
-PkgConfigAddDefaultPaths()
+#Rig our pkg-config helper only if we found root path
+if (CMAKE_FIND_ROOT_PATH)
+    include(PkgConfigSetup)
+    PkgConfigSetupSysroot()
+    PkgConfigAddDefaultPaths()
+endif()
