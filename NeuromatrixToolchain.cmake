@@ -9,7 +9,7 @@ macro(nmc_target CORE)
     SET(NMC_CURRENT_CORE ${CORE})
 
     if (NOT NMC_NO_INSTALL_PREFIX_OVERRIDE)
-        SET(CMAKE_INSTALL_PREFIX "/${CORE}/")
+        SET(CMAKE_INSTALL_PREFIX "/${CORE}/" CACHE PATH "default install prefix")
     endif()
 
     if (${CORE} MATCHES "soc")
