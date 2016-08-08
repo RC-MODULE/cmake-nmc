@@ -11,6 +11,13 @@ macro(PkgConfigAddPath NEWPATH)
     SET(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}${SEPARATOR}${NEWPATH}")
 endmacro()
 
+macro (PkgConfigForceSysroot sysroot libdir)
+    if (UNIX)
+        SET(ENV{PKG_CONFIG_SYSROOT_DIR} ${sysroot})
+    endif()
+    SET(ENV{PKG_CONFIG_LIBDIR} ${sysroot}${libdir})
+endmacro()
+
 #Tell pkg-config where to look for libraries.
 #SYSROOT dir only makes sense and works on linux
 macro (PkgConfigSetupSysroot)
@@ -18,11 +25,7 @@ macro (PkgConfigSetupSysroot)
     if (NOT CMAKE_FIND_ROOT_PATH)
         message(FATAL_ERROR "Please set CMAKE_FIND_ROOT_PATH before calling PkgConfigSetupSysroot")
     endif()
-
-    if (UNIX)
-        SET(ENV{PKG_CONFIG_SYSROOT_DIR} ${CMAKE_FIND_ROOT_PATH})
-    endif()
-    SET(ENV{PKG_CONFIG_LIBDIR} ${CMAKE_FIND_ROOT_PATH}/usr/lib/pkgconfig/)
+    PkgConfigForceSysroot(${CMAKE_FIND_ROOT_PATH} "/usr/lib/pkg-config/")
 endmacro()
 
 # Add some sane default path suitable for debian-multiarch
